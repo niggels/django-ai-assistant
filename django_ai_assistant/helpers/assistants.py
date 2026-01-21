@@ -1,7 +1,7 @@
 import abc
 import inspect
 import re
-from typing import Annotated, Any, ClassVar, Dict, Sequence, Type, TypedDict, cast
+from typing import Annotated, Any, ClassVar, Dict, Literal, Sequence, Type, TypedDict, cast
 
 from langchain.chains.combine_documents.base import (
     DEFAULT_DOCUMENT_PROMPT,
@@ -76,6 +76,11 @@ class AIAssistant(abc.ABC):  # noqa: F821
     Defaults to `1.0`.\n
     When `None`, the temperature parameter is omitted when constructing the BaseChatModel
     in the `get_llm` method.
+    """
+    reasoning_effort: Literal["none", "low", "medium", "high"] | None = None
+    """Reasoning effort to use for the assistant LLM model.\n
+    Defaults to `None` (reasoning effort is not passed to the LLM).\n
+    When set, the value is sent as `model_kwargs.reasoning.effort` in `get_llm`.
     """
     tool_max_concurrency: int = 1
     """Maximum number of tools to run concurrently / in parallel.\nDefaults to `1` (no concurrency)."""
@@ -255,6 +260,18 @@ class AIAssistant(abc.ABC):  # noqa: F821
         """
         return self.temperature
 
+    def get_reasoning_effort(self) -> Literal["none", "low", "medium", "high"] | None:
+        """Get the reasoning effort to use for the assistant LLM model.
+        By default, this is the `reasoning_effort` attribute, which is `None` by default.\n
+        Used by the `get_llm` method to create the LLM instance.\n
+        Override the `reasoning_effort` attribute or this method to use a different setting.\n
+        Returning `None` omits the parameter in the `get_llm` method.\n
+
+        Returns:
+            Literal["none", "low", "medium", "high"] | None: The reasoning effort to use.
+        """
+        return self.reasoning_effort
+
     def get_model_kwargs(self) -> dict[str, Any]:
         """Get additional keyword arguments to pass to the LLM model constructor.\n
         Used by the `get_llm` method to create the LLM instance.\n
@@ -276,7 +293,13 @@ class AIAssistant(abc.ABC):  # noqa: F821
         """
         model = self.get_model()
         temperature = self.get_temperature()
-        model_kwargs = self.get_model_kwargs()
+        model_kwargs = dict(self.get_model_kwargs())
+        reasoning_effort = self.get_reasoning_effort()
+        if reasoning_effort is not None and "reasoning" not in model_kwargs:
+            model_kwargs = {
+                **model_kwargs,
+                "reasoning": {"effort": reasoning_effort},
+            }
 
         if temperature is not None:
             return ChatOpenAI(
