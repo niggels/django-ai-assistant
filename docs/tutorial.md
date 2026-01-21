@@ -47,6 +47,23 @@ class WeatherAIAssistant(AIAssistant):
     model = "gpt-4o"
 ```
 
+If you're using a reasoning model, you can also set `reasoning_effort`:
+
+```python title="myapp/ai_assistants.py"
+from django_ai_assistant import AIAssistant
+
+class WeatherAIAssistant(AIAssistant):
+    id = "weather_assistant"
+    name = "Weather Assistant"
+    instructions = "You are a weather bot."
+    model = "gpt-5.2"
+    reasoning_effort = "none"
+```
+
+The `reasoning.effort` setting is optional, but for reasoning models it controls how much
+effort the model spends on thinking before answering. Valid values are `None`, `"none"`,
+`"low"`, `"medium"`, and `"high"`.
+
 ### Defining tools
 
 Useful tools give abilities the LLM doesn't have out-of-the-box,
